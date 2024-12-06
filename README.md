@@ -27,9 +27,9 @@ You are sad now, but hope is not lost! You decide to buy a set of tools (Get-Pak
 Downloading is easy, you just have to make sure you have the dependencies:
 This program requires `wget`, `curl` and other basic stuff that you surely have.
 
-Next, type this command in:
+Next, copy this command in your terminal:
 ```
-wget https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm
+wget https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm && sudo cp getpm /usr/bin && sudo chmod 755 /usr/bin/getpm && sudo chown 0 /usr/bin/getpm
 ```
 
 And done! You have yourself the program. It defaults to the Debian repository, feel free to edit it and make changes.
