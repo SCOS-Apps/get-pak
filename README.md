@@ -11,8 +11,10 @@ So, you've decided to buy a car (Linux Distro), it's rusty and it's not made for
 
 One day, you decide:
 
+```
 — Hey, I want to put a radio in this thing! (Program) —
 - Famous last words before disaster.
+```
 
 So you go to the internet and search the radio and buy it. (Manually download the program, which is unusual, but stick with me!)
 
