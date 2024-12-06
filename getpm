@@ -52,27 +52,38 @@ check_source() {
 	echo "${G}[✓] Check has been done sucessfully!${N}"
 }
 write_packs() {
-	echo "[i] Getting available packages for ${ARCH}..."
-	curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d | grep -F "Package: " | cut -d":" -f2 | cut -d" " -f2 | tee packages.list > /dev/null
-	echo "[i] Gettung available packages for all..."
-	curl --silent ${repo_url}/dists/stable/main/binary-all/Packages.gz | gzip -d | grep -i "Package: " | cut -d":" -f2 | cut -d" " -f2 | tee -a packages.list > /dev/null
-	echo "${G}[✓] Download done!${N}"
+	if [ ! "$1" == "--all" ]; then
+		echo "[i] Getting available packages for ${ARCH}..."
+		curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d | grep -F "Package: " | cut -d":" -f2 | cut -d" " -f2 | tee packages.list > /dev/null
+		echo "[i] Getting available packages for all..."
+		curl --silent ${repo_url}/dists/stable/main/binary-all/Packages.gz | gzip -d | grep -i "Package: " | cut -d":" -f2 | cut -d" " -f2 | tee -a packages.list > /dev/null
+		echo "${G}[✓] Download done!${N}"
+	else
+		echo "[i] Getting available packages for ${ARCH}..."
+                curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d | tee packages_full.list > /dev/null
+                echo "[i] Getting available packages for all..."
+                curl --silent ${repo_url}/dists/stable/main/binary-all/Packages.gz | gzip -d | tee -a packages_full.list > /dev/null
+                echo "${G}[✓] Download done!${N}"
+	fi
 }
 download() {
 	while IFS= read -r line; do
 		found="0"
+		if [ -f "main_pack_$(echo $line | cut -d":" -f2 | cut -d" " -f2).list" ]; then break; fi
 		if [[ $line == "Package: ${1}" ]]; then
 			echo "[i] Package $(echo $line | cut -d":" -f2 | cut -d" " -f2) found!"
+			found="1"
         		while IFS= read -r next_line; do
             			[[ -z $next_line ]] && break
 				if [[ $next_line == "Depends:"* ]]; then
-					echo "[i] Dependencies found. Saving..."
+					echo "[i] $next_line"
 					echo "$next_line" | cut -d":" -f2 > depends_${1}.list
+					download_batch depends_${1}.list
 				fi
             			if [[ $next_line == "Filename"* ]]; then
-					echo "[i] Link is: ${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)"
+#					echo "[i] Link is: ${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)"
 					found="1"
-					echo "[i] Saving..."
+#					echo "[i] Saving..."
 					echo "${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)" > main_pack_${1}.list
 					break
 				fi
@@ -80,10 +91,40 @@ download() {
 		break
     		fi
 	done
+	while [ "$found" == "0" ]; do
+		for i in `cat packages_full.list`; do
+			found="0"
+			if [ -f "main_pack_$(echo $line | cut -d":" -f2 | cut -d" " -f2).list" ]; then break; fi
+                	if [[ $line == "Package: ${1}" ]]; then
+                        	echo "[i] Package $(echo $line | cut -d":" -f2 | cut -d" " -f2) found!"
+                        	while IFS= read -r next_line; do
+                        	        [[ -z $next_line ]] && break
+                        	        if [[ $next_line == "Depends:"* ]]; then
+                        	                echo "[i] Dependencies found. Saving and Downloading..."
+                                	        echo "[i] $next_line"
+                                	        echo "$next_line" | cut -d":" -f2 > depends_${1}.list
+                                	        download_batch depends_${1}.list
+                                	fi
+                                	if [[ $next_line == "Filename"* ]]; then
+                                	        echo "[i] Link is: ${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)"
+                                        	echo "[i] Saving..."
+                                        	echo "${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)" > main_pack_${1}.list
+                                        	break
+                                	fi
+                        	done
+                		break
+                	fi
+		done
+		break
+	done
 }
 download_comp() {
 	echo "[i] Checking..."
-	{ curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d; curl --silent ${repo_url}/dists/stable/main/binary-all/Packages.gz | gzip -d; } | download $1
+	if [ ! -f "packages.list" ]; then
+		{ curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d; curl --silent ${repo_url}/dists/stable/main/binary-all/Packages.gz | gzip -d; } | download $1
+	else
+		cat ./packages_full.list | download $1
+	fi
 	if [ "$found" == "0" ]; then
 		echo "[E] Package ${1} has not been found."
 		exit 1
@@ -92,7 +133,7 @@ download_comp() {
 download_batch() {
 	list=' '
 	for i in $(seq $(( $(grep -o "," $1 | wc -w) + 1 ))); do
-        	list+=$(cat $1 | cut -d: -f2 | cut -d"," -f$i | cut -d" " -f2 >&1)' '
+        	list+=$(cat $1 | cut -d"," -f$i | cut -d" " -f2 >&1)' '
 	done
 	for i in ${list[@]}; do
 		download_comp $i
@@ -100,7 +141,7 @@ download_batch() {
 }
 
 case $1 in
-	--create-pkg-list|-pkg) write_packs ;;
+	--create-pkg-list|-pkg) if [ "$2" == "--all" ]; then write_packs --all; else write_packs; fi ;;
 	--check-source|-chk) check_source ;;
 	--download|-d) if [ -t 0 ]; then download_comp $2; else read pak; download_comp $pak; fi ;;
 	--download-batch|-b) download_batch $2 ;;
