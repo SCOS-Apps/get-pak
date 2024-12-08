@@ -2,7 +2,7 @@
 
 **<h1 align="center">Get-Pak</h1>**
 **<p align="center">**
-**Now with bugs! | [Download now!](#Downloading)**
+**Now with less bugs! | [Download now!](#Downloading)**
 **</p>**
 
 # This thing, in a nutshell.
@@ -29,7 +29,10 @@ This program requires `wget`, `curl` and other basic stuff that you surely have.
 
 Next, copy this command in your terminal:
 ```
-wget https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm && sudo cp getpm /usr/bin && sudo chmod 755 /usr/bin/getpm && sudo chown 0 /usr/bin/getpm
+wget https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm; nano getpm; sudo cp getpm /usr/bin && sudo chmod 755 /usr/bin/getpm && sudo chown 0 /usr/bin/getpm
 ```
+It will show the editing screen, if you don't have nano then edit this command to use other stuff.
+
+From the editing screen, you'll need to make basic changes, such as your architecture, and which repo you wanna use, it defaults to the Debian one.
 
 And done! You have yourself the program. It defaults to the Debian repository, feel free to edit it and make changes.
