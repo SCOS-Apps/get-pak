@@ -35,4 +35,4 @@ It will show the editing screen, if you don't have nano then edit this command t
 
 From the editing screen, you'll need to make basic changes, such as your architecture, and which repo you wanna use, it defaults to the Debian one.
 
-And done! You have yourself the program. It defaults to the Debian repository, feel free to edit it and make changes.
+And done! You have yourself the program!
