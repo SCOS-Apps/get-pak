@@ -1,17 +1,17 @@
-#!/system/bin/sh
-grep_prop() {
-        getprop | grep -Fw $1 | cut -d":" -f2 | cut -d" " -f2 | cut -d"[" -f2 | cut -d"]" -f1
-}
-ABI=$(grep_prop ro.product.cpu.abi)
-ABI2=$(grep_prop ro.product.cpu.abi2)
-ABILONG=$(grep_prop ro.product.cpu.abi)
-ARCH=arm
-ARCH32=arm
-IS64BIT=false
-if [ "$ABI" = "x86" ]; then ARCH=x86; ARCH32=x86; fi;
-if [ "$ABI2" = "x86" ]; then ARCH=x86; ARCH32=x86; fi;
-if [ "$ABILONG" = "arm64-v8a" ]; then ARCH=arm64; ARCH32=arm; IS64BIT=true; fi;
-if [ "$ABILONG" = "x86_64" ]; then ARCH=x64; ARCH32=x86; IS64BIT=true; fi;
+#!/bin/env sh
+# Set your arch here depending on the output of the command: uname -i
+# If it comes out as uknown, then it is most likely ARM (AKA ARMv7, ARMv7 or ARMHF) or arm64 (AKA Aarch64 or ARMv8).
+# Check your CPU online for info (or just use the command arch).
+# If you use arch, then you need to translate the output to actual info:
+# aarch64 = arm64
+# arm = armhf
+# x86, i386 = i386
+# x86_64, amd64 = amd64
+# Any other you'll need to translate yourself.
+# Multi-arch is not supported, and it only gets packages from the stable repo, and main sub-repo.
+ARCH=arm64
+repo_url="https://deb.debian.org/debian"
+
 # Colors
 G='\e[01;32m'           # GREEN TEXT
 R='\e[01;31m'           # RED TEXT
@@ -22,14 +22,7 @@ Bl='\e[01;30m'          # BLACK TEXT
 C='\e[01;36m'           # CYAN TEXT
 W='\e[01;37m'           # WHITE TEXT
 BGBL='\e[1;30;47m'      # Background W Text Bl
-N='\e[0m'                       # How to use (example): echo "${G}example${N}"
-loadBar=' '                     # Load UI
-# Remove color codes if -nc or in ADB Shell
-[ -n "$1" -a "$1" == "-nc" ] && shift && NC=true
-[ "$NC" -o -n "$ANDROID_SOCKET_adbd" ] && {
-  G=''; R=''; Y=''; B=''; V=''; Bl=''; C=''; W=''; N=''; BGBL=''; loadBar='=';
-}
-repo_url="https://deb.debian.org/debian"
+N='\e[0m'               # How to use (example): echo "${G}example${N}"
 check_source() {
 	echo "[i] Checking sources..."
 	if curl --silent ${repo_url}/dists/stable/Release > /dev/null; then
@@ -66,37 +59,44 @@ write_packs() {
                 echo "${G}[✓] Download done!${N}"
 	fi
 }
-download() {
-	while IFS= read -r line; do
-		found="0"
-		if [ -f "main_pack_$(echo $line | cut -d":" -f2 | cut -d" " -f2).list" ]; then break; fi
-		if [[ $line == "Package: ${1}" ]]; then
-			echo "[i] Package $(echo $line | cut -d":" -f2 | cut -d" " -f2) found!"
-			found="1"
-        		while IFS= read -r next_line; do
-            			[[ -z $next_line ]] && break
-				if [[ $next_line == "Depends:"* ]]; then
-					echo "[i] $next_line"
-					echo "$next_line" | cut -d":" -f2 > depends_${1}.list
-					download_batch depends_${1}.list
-				fi
-            			if [[ $next_line == "Filename"* ]]; then
-#					echo "[i] Link is: ${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)"
-					found="1"
-#					echo "[i] Saving..."
-					echo "${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)" > main_pack_${1}.list
-					break
-				fi
-        		done
-		break
-    		fi
+pak_to_awk() {
+	out="$(awk -v pack="${1}" '$0 == "Package: " pack {flag=1} flag; /^$/ {flag=0}' packages_full.list)"
+	echo "$out"
+}
+download_awk() {
+	if [ ! -f "packages_full.list" ]; then echo "[E] Could not find packages_full.list file. Run getpm -pkg --all first!"; exit 1; fi
+        if [ ! -z "$(cat packages_full.list | grep -Fwo "Package: ${1}")" ]; then echo -n ""; else echo "[E] Package ${1} doesn't exist."; exit 1; fi
+        found="0"
+       	for i in "$(pak_to_awk $1)"; do
+		if [ ! -e "dep_$(echo "${i}" | grep "Package ${1}" | cut -d":" -f2 | cut -d" " -f2).list" ]; then echo -n; else found="1"; echo "[W] Package already exists, skipping..."; continue; fi
+                if echo "${i}" | grep "Package: ${1}" > /dev/null; then
+                        echo "[i] Package $1 found!"
+                        found="1"
+		fi
+                if echo "${i}" | grep "Depends:*" > /dev/null; then
+                        echo "[i] $(echo "${i}" | grep "Depends:*")"
+                        awk -v pack="${1}" '$0 == "Package: " pack {flag=1} flag; /^$/ {flag=0}' packages_full.list | grep "Depends:*" | sed 's/[(*>=*)]//g' | cut -d":" -f2 > dep_${1}.list
+                        download_batch dep_${1}.list
+                fi
+                if echo "${i}" | grep "Filename:*" > /dev/null; then
+#                        echo "[i] Link is: ${repo_url}/$(echo "${i}" | grep "Filename:*" | cut -d":" -f2 | cut -d" " -f2)"
+#                        echo "[i] Saving..."
+                        echo "${repo_url}/$(echo "${i}" | grep "Filename:*" | cut -d":" -f2 | cut -d" " -f2)" > main_pack_${1}.list
+                        continue
+                fi
+                continue
 	done
-	while [ "$found" == "0" ]; do
-		for i in `cat packages_full.list`; do
-			found="0"
-			if [ -f "main_pack_$(echo $line | cut -d":" -f2 | cut -d" " -f2).list" ]; then break; fi
-                	if [[ $line == "Package: ${1}" ]]; then
+}
+download() { # Not used, remove later.
+	while true; do
+		if [ ! -f "packages_full.list" ]; then echo "[E] Could not find packages_full.list file. Run getpm -pkg --all first!"; exit 1; fi
+		if [ ! -z "$(cat packages_full.list | grep -Fwo "Package: ${1}")" ]; then echo -n ""; else echo "[E] Package ${1} doesn't exist."; exit 1; fi
+		found="0"
+		awk '$0 == "Package: ${1}" {flag=1} flag; /^$/ {flag=0}' packages_full.list | while IFS= read i; do
+			if [ -f "main_pack_$(echo $i | cut -d":" -f2 | cut -d" " -f2).list" ]; then break; fi
+                	if [[ $i == "Package: ${1}" ]]; then
                         	echo "[i] Package $(echo $line | cut -d":" -f2 | cut -d" " -f2) found!"
+				found="1"
                         	while IFS= read -r next_line; do
                         	        [[ -z $next_line ]] && break
                         	        if [[ $next_line == "Depends:"* ]]; then
@@ -115,24 +115,19 @@ download() {
                 		break
                 	fi
 		done
-		break
 	done
 }
 download_comp() {
+	found="0"
 	echo "[i] Checking..."
-	if [ ! -f "packages.list" ]; then
-		{ curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d; curl --silent ${repo_url}/dists/stable/main/binary-all/Packages.gz | gzip -d; } | download $1
-	else
-		cat ./packages_full.list | download $1
-	fi
+	download_awk $1
 	if [ "$found" == "0" ]; then
 		echo "[E] Package ${1} has not been found."
-		exit 1
 	fi
 }
 download_batch() {
 	list=' '
-	for i in $(seq $(( $(grep -o "," $1 | wc -w) + 1 ))); do
+	for i in $(seq $(( $(grep -o "," $1 | wc -w) ))); do
         	list+=$(cat $1 | cut -d"," -f$i | cut -d" " -f2 >&1)' '
 	done
 	for i in ${list[@]}; do
@@ -143,6 +138,6 @@ download_batch() {
 case $1 in
 	--create-pkg-list|-pkg) if [ "$2" == "--all" ]; then write_packs --all; else write_packs; fi ;;
 	--check-source|-chk) check_source ;;
-	--download|-d) if [ -t 0 ]; then download_comp $2; else read pak; download_comp $pak; fi ;;
+	--download|-d) if [ -z "$2" ]; then echo "[E] --download requires an argument."; exit 1; elif [ -t 0 ]; then download_comp $2; else read pak; download_comp $pak; fi ;;
 	--download-batch|-b) download_batch $2 ;;
 esac
