@@ -8,7 +8,7 @@
 # x86, i386 = i386
 # x86_64, amd64 = amd64
 # Any other you'll need to translate yourself.
-# Multi-arch is not supported, and it only gets packages from the stable repo, and main sub-repo.
+# Multi-arch is not supported, and it only gets packages from the stable repo, and main sub-repo, as it cannot detect others (for now).
 ARCH=arm64
 repo_url="https://deb.debian.org/debian"
 
@@ -79,42 +79,10 @@ download_awk() {
                         download_batch dep_${1}.list
                 fi
                 if echo "${i}" | grep "Filename:*" > /dev/null; then
-#                        echo "[i] Link is: ${repo_url}/$(echo "${i}" | grep "Filename:*" | cut -d":" -f2 | cut -d" " -f2)"
-#                        echo "[i] Saving..."
                         echo "${repo_url}/$(echo "${i}" | grep "Filename:*" | cut -d":" -f2 | cut -d" " -f2)" > main_pack_${1}.list
                         continue
                 fi
                 continue
-	done
-}
-download() { # Not used, remove later.
-	while true; do
-		if [ ! -f "packages_full.list" ]; then echo "[E] Could not find packages_full.list file. Run getpm -pkg --all first!"; exit 1; fi
-		if [ ! -z "$(cat packages_full.list | grep -Fwo "Package: ${1}")" ]; then echo -n ""; else echo "[E] Package ${1} doesn't exist."; exit 1; fi
-		found="0"
-		awk '$0 == "Package: ${1}" {flag=1} flag; /^$/ {flag=0}' packages_full.list | while IFS= read i; do
-			if [ -f "main_pack_$(echo $i | cut -d":" -f2 | cut -d" " -f2).list" ]; then break; fi
-                	if [[ $i == "Package: ${1}" ]]; then
-                        	echo "[i] Package $(echo $line | cut -d":" -f2 | cut -d" " -f2) found!"
-				found="1"
-                        	while IFS= read -r next_line; do
-                        	        [[ -z $next_line ]] && break
-                        	        if [[ $next_line == "Depends:"* ]]; then
-                        	                echo "[i] Dependencies found. Saving and Downloading..."
-                                	        echo "[i] $next_line"
-                                	        echo "$next_line" | cut -d":" -f2 > depends_${1}.list
-                                	        download_batch depends_${1}.list
-                                	fi
-                                	if [[ $next_line == "Filename"* ]]; then
-                                	        echo "[i] Link is: ${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)"
-                                        	echo "[i] Saving..."
-                                        	echo "${repo_url}/$(echo $next_line | cut -d":" -f2 | cut -d" " -f2)" > main_pack_${1}.list
-                                        	break
-                                	fi
-                        	done
-                		break
-                	fi
-		done
 	done
 }
 download_comp() {
