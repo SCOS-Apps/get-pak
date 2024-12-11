@@ -13,7 +13,7 @@ ARCH=arm64
 repo_url="https://deb.debian.org/debian"
 
 # Colors
-G="\033[38;5;2m"
+G="\033[01;32m"
 R="\033[01;31m"
 Y="\033[01;33m"
 B="\033[01;34m"
@@ -25,6 +25,26 @@ BGBL="\033[1;30;47m"
 N="\033[0m"
 loadBar=' '
 
+help() {
+	help="SCOS Get-Pak Package Manager v1.0
+
+Currently using repo${G}: ${R}$repo_url${N}
+Currently using arch${G}: ${R}$ARCH${N}
+
+Commands${G}:
+	${V}--help ${G}|${V} -h${N}
+		Show this dialog.
+	${V}--check-source ${G}|${V} -chk${N}
+		Check if source is functional
+	${V}--create-pkg-list ${G}|${V} -pkg${N}
+		Creates packages-full.list file to get packs.
+	${V}--download ${G}|${V} -d${N}
+		Downloads packages and their dependencies.
+	${V}--download-batch ${G}|${V} -b${N}
+		Downloads from dependencies lists.
+"
+	echo -n "${help}"
+}
 check_source() {
 	echo "[i] Current source: $repo_url"
 	echo "[i] Checking sources..."
@@ -99,8 +119,10 @@ download_batch() {
 }
 
 case $1 in
+	--help|-h) help ;;
 	--create-pkg-list|-pkg) write_packs --all ;;
 	--check-source|-chk) check_source ;;
 	--download|-d) if [ -z "$2" ]; then echo "[E] --download requires an argument."; exit 1; elif [ -t 0 ]; then download_comp $2; else read pak; download_comp $pak; fi ;;
 	--download-batch|-b) download_batch $2 ;;
+	*) if [ -z "$1" ]; then echo "[E] No command supplied."; exit 1; else echo "[E] Command not supported: $1"; exit 1; fi
 esac
