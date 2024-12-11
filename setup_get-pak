@@ -22,6 +22,6 @@ mkdir ~/.var/app/scos.scos-apps.Get-Pak
 
 curl --silent https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm | tee ~/.var/app/scos.scos-apps.Get-Pak/getpm > /dev/null
 chmod +x $HOME/.var/app/scos.scos-apps.Get-Pak/getpm
-echo 'export PATH=$PATH:$HOME/.var/app/scos.scos-apps.Get-Pak/' | tee -a ~/.bashrc > /dev/null
+echo 'export PATH=$PATH:$HOME/.var/app/scos.scos-apps.Get-Pak' | tee -a ~/.bashrc > /dev/null
 source ~/.bashrc
 echo "[✓] Done!"
