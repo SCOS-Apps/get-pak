@@ -27,9 +27,9 @@ You are sad now, but hope is not lost! You decide to buy a set of tools (Get-Pak
 Downloading is easy, you just have to make sure you have the dependencies:
 This program requires `wget`, `curl` and other basic stuff that you surely have.
 
-Next, copy this command in your terminal:
+Next, copy this command in your terminal (Run the last command as sudo if on Linux):
 ```shell
-curl https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/setup_get-pak | bash -
+wget https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/setup_get-pak && sh setup_get-pak
 ```
 And done! You have yourself the program!
-Remember to edit the `ARCH` and `repo_url` entry in the file that is located in `~/.var/app/scos.scos-apps.Get-Pak/getpm`
+Remember to edit the `ARCH` and `repo_url` entry in the file that is located in `$PREFIX/bin/getpm` (Or /bin/getpm on Linux)
