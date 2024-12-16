@@ -25,6 +25,11 @@ BGBL="\033[1;30;47m"
 N="\033[0m"
 loadBar=' '
 
+debug() {
+	if [ "${DEBUG}" = "1" ]; then
+		echo "[DEBUG${2}] $1"
+	fi
+}
 help() {
 	help="SCOS Get-Pak Package Manager v1.0
 
@@ -70,8 +75,6 @@ check_source() {
 write_packs() {
 	echo "[i] Getting available packages for ${ARCH}..."
         curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d | tee packages_full.list > /dev/null
-        echo "[i] Getting available packages for all..."
-        curl --silent ${repo_url}/dists/stable/main/binary-all/Packages.gz | gzip -d | tee -a packages_full.list > /dev/null
         echo "${G}[✓] Download done!${N}"
 }
 pak_to_awk() {
@@ -83,26 +86,26 @@ download_awk() {
         if [ ! -z "$(cat packages_full.list | grep -Fwo "Package: ${1}")" ]; then echo -n ""; else echo "${R}[E] Package ${1} doesn't exist.${N}"; exit 1; fi
         found="0"
        	for i in "$(pak_to_awk $1)"; do
-		if [ ! -e "dep_$(echo "${i}" | grep "Package ${1}" | cut -d":" -f2 | cut -d" " -f2).list" ]; then echo -n; else found="1"; echo "[W] Package already exists, skipping..."; continue; fi
                 if echo "${i}" | grep "Package: ${1}" > /dev/null; then
                         echo "[i] Package $1 found!"
                         found="1"
 		fi
+		debug "debug sym1 $1" "_INFO"
                 if echo "${i}" | grep "Depends:*" > /dev/null; then
                         echo "[i] $(echo "${i}" | grep "Depends:*")"
-                        awk -v pack="${1}" '$0 == "Package: " pack {flag=1} flag; /^$/ {flag=0}' packages_full.list | grep "Depends:*" | sed 's/[(*>=*)]//g' | cut -d":" -f2 > dep_${1}.list
+                        awk -v pack="${1}" '$0 == "Package: " pack {flag=1} flag; /^$/ {flag=0}' packages_full.list | grep "Depends:*" | sed 's/[(*>=*)]//g' | sed 's/*Depends: //' | tee dep_${1}.list > /dev/null
                         download_batch dep_${1}.list
                 fi
-                if echo "${i}" | grep "Filename:*" > /dev/null; then
-                        echo "${repo_url}/$(echo "${i}" | grep "Filename:*" | cut -d":" -f2 | cut -d" " -f2)" > main_pack_${1}.list
-                        break
-                fi
+		debug "$i" "_DOC"
+                echo "${repo_url}/$(pak_to_awk $1 | grep "Filename:" | sed 's/Filename: //')" |  tee -a main_paks.list >/dev/null
+		debug "debug sym3 $1" "_INFO"
 	done
 }
 download_comp() {
 	found="0"
-	echo "[i] Checking..."
-	download_awk $1
+	if [ ! -f "dep_${1}.list" ]; then
+		download_awk $1
+	else found="1"; fi
 	if [ "$found" -eq "0" ]; then
 		echo "${R}[E] Package ${1} has not been found.${N}"
 		exit 1
@@ -110,9 +113,10 @@ download_comp() {
 }
 download_batch() {
 	list=' '
-	for i in $(seq $(( $(grep -o "," $1 | wc -w) ))); do
+	for i in $(seq $(( $(grep -o "," $1 | wc -w) + 1 ))); do
         	list="${list}$(cat $1 | cut -d"," -f$i | cut -d" " -f2 >&1)"' '
 	done
+	debug "debug sym $list" "_DEP"
 	for i in ${list}; do
 		download_comp $i
 	done
@@ -120,9 +124,9 @@ download_batch() {
 
 case $1 in
 	--help|-h) help ;;
-	--create-pkg-list|-pkg) write_packs --all ;;
+	--create-pkg-list|-pkg) write_packs ;;
 	--check-source|-chk) check_source ;;
 	--download|-d) if [ -z "$2" ]; then echo "[E] --download requires an argument."; exit 1; elif [ -t 0 ]; then download_comp $2; else read pak; download_comp $pak; fi ;;
 	--download-batch|-b) download_batch $2 ;;
-	*) if [ -z "$1" ]; then echo "[E] No command supplied."; exit 1; else echo "[E] Command not supported: $1"; exit 1; fi
+	*) if [ -z "$1" ]; then help; exit 1; else echo "[E] Command not supported: $1"; exit 1; fi
 esac

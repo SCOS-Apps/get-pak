@@ -3,8 +3,6 @@
 # This is the install script for Get-Pak, feel free to analize.
 # This will install Get-Pak to ~/.var/app/scos.scos-apps.Get-Pak/
 
-circle_texture="| \ - / |"
-
 clear
 
 echo "Welcome to Get-Pak!"
@@ -12,7 +10,7 @@ echo "This script will auto-install all the things you need."
 echo
 
 if [ -z "${HOME}" -o "${HOME}" == "/" -o "${HOME}" == "/root*" ]; then
-	echo "[E] Please set home dir to something else!" 1>&2
+	echo "[E] Please set home dir to something else and do not run as root!" 1>&2
 	exit 1
 fi
 
@@ -25,3 +23,5 @@ chmod +x $HOME/.var/app/scos.scos-apps.Get-Pak/getpm
 echo 'export PATH=$PATH:$HOME/.var/app/scos.scos-apps.Get-Pak' | tee -a ~/.bashrc > /dev/null
 source ~/.bashrc
 echo "[✓] Done!"
+echo 'export PATH=$PATH:$HOME/.var/app/scos.scos-apps.Get-Pak/' | tee -a ~/.bashrc > /dev/null
+echo "[✓] Done! Remember to do the command: source ~/.bashrc"

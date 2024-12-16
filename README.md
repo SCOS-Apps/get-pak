@@ -5,7 +5,7 @@
 **Now with less bugs! | [Download now!](#Downloading)**
 **</p>**
 
-# This thing, in a nutshell.
+## This thing, in a nutshell.
 
 So, you've decided to buy a car (Linux Distro), it's rusty and it's not made for daily use (Ex. EyeVisionOS) but you still like it.
 
@@ -22,17 +22,14 @@ When it arrives though, you realize something: You don't got the tools to put it
 
 You are sad now, but hope is not lost! You decide to buy a set of tools (Get-Pak) and you finally put the radio in, it's janky, but you did a great job!
 
-# Downloading
+## Downloading
 
 Downloading is easy, you just have to make sure you have the dependencies:
 This program requires `wget`, `curl` and other basic stuff that you surely have.
 
 Next, copy this command in your terminal:
+```shell
+curl https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/setup_get-pak | bash -
 ```
-wget https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm; nano getpm; sudo cp getpm /usr/bin && sudo chmod 755 /usr/bin/getpm && sudo chown 0 /usr/bin/getpm
-```
-It will show the editing screen, if you don't have nano then edit this command to use other stuff.
-
-From the editing screen, you'll need to make basic changes, such as your architecture, and which repo you wanna use, it defaults to the Debian one.
-
 And done! You have yourself the program!
+Remember to edit the `ARCH` and `repo_url` entry in the file that is located in `~/.var/app/scos.scos-apps.Get-Pak/getpm`
