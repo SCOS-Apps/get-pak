@@ -8,7 +8,11 @@ clear
 echo "Welcome to Get-Pak!"
 echo "This script will auto-install all the things you need."
 echo "If you are using Linux, please run this as root."
-
+if [ -z "$TERMUX_APP__PACKAGE_NAME" ]
+then
+curl --silent https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm | tee /bin/getpm > /dev/null
+else
 curl --silent https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm | tee $PREFIX/bin/getpm > /dev/null
+fi
 chmod +rwx $PREFIX/bin/getpm
 echo "[✓] Done!"
