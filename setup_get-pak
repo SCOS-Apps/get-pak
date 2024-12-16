@@ -1,27 +1,14 @@
 #!/bin/bash
 
 # This is the install script for Get-Pak, feel free to analize.
-# This will install Get-Pak to ~/.var/app/scos.scos-apps.Get-Pak/
+# This will install Get-Pak to $PREFIX/bin/getpm (Or /bin/getpm)
 
 clear
 
 echo "Welcome to Get-Pak!"
 echo "This script will auto-install all the things you need."
-echo
+echo "If you are using Linux, please run this as root."
 
-if [ -z "${HOME}" -o "${HOME}" == "/" -o "${HOME}" == "/root*" ]; then
-	echo "[E] Please set home dir to something else and do not run as root!" 1>&2
-	exit 1
-fi
-
-mkdir ~/.var
-mkdir ~/.var/app
-mkdir ~/.var/app/scos.scos-apps.Get-Pak
-
-curl --silent https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm | tee ~/.var/app/scos.scos-apps.Get-Pak/getpm > /dev/null
-chmod +x $HOME/.var/app/scos.scos-apps.Get-Pak/getpm
-echo 'export PATH=$PATH:$HOME/.var/app/scos.scos-apps.Get-Pak' | tee -a ~/.bashrc > /dev/null
-source ~/.bashrc
+curl --silent https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/getpm | tee $PREFIX/bin/getpm > /dev/null
+chmod +rwx $PREFIX/bin/getpm
 echo "[✓] Done!"
-echo 'export PATH=$PATH:$HOME/.var/app/scos.scos-apps.Get-Pak/' | tee -a ~/.bashrc > /dev/null
-echo "[✓] Done! Remember to do the command: source ~/.bashrc"
