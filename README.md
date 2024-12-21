@@ -32,7 +32,7 @@ Next, copy this command in your terminal (Run the last command as sudo if on Lin
 wget https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/setup_get-pak && sh setup_get-pak
 ```
 And done! You have yourself the program!
-Remember to edit the `ARCH` and `repo_url` entry in the file that is located in `$PREFIX/bin/getpm` (Or /bin/getpm on Linux)
+Remember to edit the `ARCH`, `repo_url` and `repo_dist` entries in the file that is located in `$PREFIX/bin/getpm` (Or /bin/getpm on Linux)
 
 ## Usage
 
