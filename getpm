@@ -27,7 +27,12 @@ loadBar=' '
 
 debug() {
 	if [ "${DEBUG}" = "1" ]; then
+		if [ -t 0 ]
+		then
 		echo "[DEBUG${2}] $1"
+		else
+		echo "[DEBUG_STDIN${1}] $(read a; echo -n "$a"; unset a)"
+		fi
 	fi
 }
 help() {
@@ -77,15 +82,22 @@ write_packs() {
         curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d | tee packages_full.list > /dev/null
         echo "${G}[✓] Download done!${N}"
 }
+setup_var() {
+	document="$(curl --silent ${repo_url}/dists/stable/main/binary-${ARCH}/Packages.gz | gzip -d)"
+}
 pak_to_awk() {
 	out="$(awk -v pack="${1}" '$0 == "Package: " pack {flag=1} flag; /^$/ {flag=0}' packages_full.list)"
 	echo "$out"
 }
+pak_to_awk_var() {
+	out="$(echo "$document" | awk -v pack="${1}" '$0 == "Package: " pack {flag=1} flag; /^$/ {flag=0}')"
+	echo "$out"
+}
 download_awk() {
-	if [ ! -f "packages_full.list" ]; then echo "[E] Could not find packages_full.list file. Run getpm -pkg --all first!"; exit 1; fi
-        if [ ! -z "$(cat packages_full.list | grep -Fwo "Package: ${1}")" ]; then echo -n ""; else echo "${R}[E] Package ${1} doesn't exist.${N}"; exit 1; fi
+#	if [ ! -f "packages_full.list" ]; then echo "[E] Could not find packages_full.list file. Run getpm -pkg --all first!"; exit 1; fi
+        if pak_to_awk_var $1 | grep -Fwo "Package: ${1}" | debug "_PACKAGE"; then echo -n ""; else echo "${R}[E] Package ${1} doesn't exist.${N}"; exit 1; fi
         found="0"
-       	for i in "$(pak_to_awk $1)"; do
+       	for i in "$(pak_to_awk_var $1)"; do
                 if echo "${i}" | grep "Package: ${1}" > /dev/null; then
                         echo "[i] Package $1 found!"
                         found="1"
@@ -93,11 +105,11 @@ download_awk() {
 		debug "debug sym1 $1" "_INFO"
                 if echo "${i}" | grep "Depends:*" > /dev/null; then
                         echo "[i] $(echo "${i}" | grep "Depends:*")"
-                        awk -v pack="${1}" '$0 == "Package: " pack {flag=1} flag; /^$/ {flag=0}' packages_full.list | grep "Depends:*" | sed 's/[(*>=*)]//g' | sed 's/*Depends: //' | tee dep_${1}.list > /dev/null
+                        echo "$document" | awk -v pack="${1}" '$0 == "Package: " pack {flag=1} flag; /^$/ {flag=0}' | grep "Depends:*" | sed 's/[(*>=*)]//g' | sed 's/*Depends: //' | tee dep_${1}.list > /dev/null
                         download_batch dep_${1}.list
                 fi
 		debug "$i" "_DOC"
-                echo "${repo_url}/$(pak_to_awk $1 | grep "Filename:" | sed 's/Filename: //')" |  tee -a main_paks.list >/dev/null
+                echo "${repo_url}/$(pak_to_awk_var $1 | grep "Filename:" | sed 's/Filename: //')" |  tee -a main_paks.list >/dev/null
 		debug "debug sym3 $1" "_INFO"
 	done
 }
@@ -126,7 +138,7 @@ case $1 in
 	--help|-h) help ;;
 	--create-pkg-list|-pkg) write_packs ;;
 	--check-source|-chk) check_source ;;
-	--download|-d) if [ -z "$2" ]; then echo "[E] --download requires an argument."; exit 1; elif [ -t 0 ]; then download_comp $2; else read pak; download_comp $pak; fi ;;
+	--download|-d) if [ -z "$2" ]; then echo "[E] --download requires an argument."; exit 1; elif [ -t 0 ]; then setup_var; download_comp $2; else read pak; download_comp $pak; fi ;;
 	--download-batch|-b) download_batch $2 ;;
 	*) if [ -z "$1" ]; then help; exit 1; else echo "[E] Command not supported: $1"; exit 1; fi
 esac
