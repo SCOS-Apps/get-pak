@@ -33,3 +33,20 @@ wget https://raw.githubusercontent.com/SCOS-Apps/get-pak/refs/heads/master/setup
 ```
 And done! You have yourself the program!
 Remember to edit the `ARCH` and `repo_url` entry in the file that is located in `$PREFIX/bin/getpm` (Or /bin/getpm on Linux)
+
+## Usage
+
+Taken from the program itself:
+```
+Commands:
+        --help | -h
+                Show this dialog.
+        --check-source | -chk
+                Check if source is functional
+        --create-pkg-list | -pkg
+                Creates packages-full.list file to get packs.
+        --download | -d
+                Downloads packages and their dependencies.
+        --download-batch | -b
+                Downloads from dependencies lists.
+```
