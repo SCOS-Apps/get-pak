@@ -10,7 +10,8 @@
 # Any other you'll need to translate yourself.
 # Multi-arch is not supported, and it only gets packages from the stable repo, and main sub-repo, as it cannot detect others (for now).
 ARCH=arm64
-repo_url="https://deb.debian.org/debian"
+repo_url="deb.debian.org/debian"
+repo_dist="stable"
 
 # Colors
 G="\033[01;32m"
@@ -40,6 +41,7 @@ help() {
 
 Currently using repo${G}: ${R}$repo_url${N}
 Currently using arch${G}: ${R}$ARCH${N}
+Currently using dist${G}: ${R}$repo_dist${N}
 
 Commands${G}:
 	${V}--help ${G}|${V} -h${N}
@@ -56,19 +58,20 @@ Commands${G}:
 	echo -n "${help}"
 }
 check_source() {
-	echo "[i] Current source: $repo_url"
+	echo "[i] Current source: $repo_url with dist $repo_dist"
 	echo "[i] Checking sources..."
-	if curl --silent ${repo_url}/dists/stable/Release > /dev/null; then
+	if [ -z "$(curl -Is ${repo_url}/dists/${repo_dist}/Release | head -n 1)" -o $(curl -Is ${repo_url}/dists/${repo_dist}/Release | head -n 1 | cut -d" " -f2) = "404" ]; then echo "${R}[E] Source doesn't work.\n[E] This could potentially mean that your selected dist is not correct.\n[E] Please go to ${repo_url}/dist and check available dists.${N}"; exit 1; fi
+	if curl --silent ${repo_url}/dists/${repo_dist}/Release 1>/dev/null; then
 		echo "[i] Source is functional."
 	fi
-	if [ -z $(curl --silent ${repo_url}/dists/stable/Release | grep -i "Architectures:" | cut -d: -f2 | grep -Fwo all) ]; then
+	if [ -z $(curl --silent ${repo_url}/dists/${repo_dist}/Release | grep -i "Architectures:" | cut -d: -f2 | grep -Fwo all) ]; then
 		echo "${V}[W] Source doesn't support arch: all"
 		echo "[W] This means that each program has it's own architecture,"
 		echo "[W] and it could not support your system. (Potentially.)${N}"
 	fi
-	if [ -z $(curl --silent ${repo_url}/dists/stable/Release | grep -i "Architectures:" | cut -d: -f2 | grep -Fwo $ARCH) ]; then
+	if [ -z "$(curl --silent ${repo_url}/dists/${repo_dist}/Release | grep -i "Architectures:" | cut -d":" -f2 | grep -Fwo "$ARCH")" ]; then
 		echo "${R}[E] Source doesn't support your arch: $ARCH"
-		if [ $ARCH == "arm*" ]; then
+		if [ "$ARCH" = "arm*" ]; then
 			echo "${R}[E] This is normal, as most sources don't support ARM-based devices.${N}"
 		else
 			echo "${R}[E] This is not normal, as most sources support x86 x64_86 devices.${N}"
