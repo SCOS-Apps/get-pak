@@ -10,7 +10,7 @@
 # Any other you'll need to translate yourself.
 # Multi-arch is not supported, and it only gets packages from the stable repo, and main sub-repo, as it cannot detect others (for now).
 ARCH=arm64
-repo_url="deb.debian.org/debian"
+repo_url="https://deb.debian.org/debian"
 repo_dist="stable"
 
 # Colors
